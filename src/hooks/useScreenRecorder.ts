@@ -1146,7 +1146,14 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		const recorder = webcamRecorder.current;
 		if (recorder && recorder.state === "inactive") {
 			webcamStartTime.current = Date.now();
-			recorder.start(RECORDER_TIMESLICE_MS);
+			try {
+				recorder.start(RECORDER_TIMESLICE_MS);
+			} catch (error) {
+				if (recorder.state === "inactive") {
+					webcamStartTime.current = null;
+				}
+				throw error;
+			}
 		}
 	}, []);
 
