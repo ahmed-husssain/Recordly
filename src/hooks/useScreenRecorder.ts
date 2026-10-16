@@ -216,6 +216,12 @@ export function shouldUseNativeWindowsCaptureForSource(
 	return source?.id?.startsWith("screen:") === true || source?.id?.startsWith("window:") === true;
 }
 
+/**
+ * Safely stops an active MediaRecorder if it is currently recording or paused.
+ *
+ * @param recorder - The MediaRecorder instance (or compatible object) to stop.
+ * @returns `true` if the recorder was actively stopped, otherwise `false`.
+ */
 export function stopActiveMediaRecorder(
 	recorder: Pick<MediaRecorder, "state" | "stop"> | null | undefined,
 ): boolean {
