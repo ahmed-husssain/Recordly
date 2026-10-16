@@ -3274,6 +3274,11 @@ export class ModernVideoExporter {
 		this.notifyEncodeCapacityAvailable();
 	}
 
+	/**
+	 * Waits for available encoder capacity or until the safety timeout elapses.
+	 *
+	 * @param timeoutMs - Maximum duration in milliseconds to wait before resolving.
+	 */
 	private waitForEncodeCapacity(timeoutMs = 50): Promise<void> {
 		return new Promise((resolve) => {
 			let timer: ReturnType<typeof setTimeout> | null = null;

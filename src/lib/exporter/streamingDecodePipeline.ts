@@ -102,6 +102,9 @@ export async function decodeVideoStream(
 	}
 }
 
+/**
+ * Executes a single streaming video decode attempt, feeding chunks into WebCodecs VideoDecoder with backpressure.
+ */
 async function decodeVideoStreamAttempt(
 	context: StreamingDecodeContext,
 
