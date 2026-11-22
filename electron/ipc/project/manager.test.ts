@@ -199,6 +199,57 @@ describe("local media path policy", () => {
 		expect(await fs.readFile(projectPath, "utf-8")).toBe(contents);
 	});
 
+	it("previews a project with a valid relative file in a nested media folder", async () => {
+		vi.doMock("../../mediaServer", () => ({
+			getMediaServerBaseUrl: () => "http://127.0.0.1:1234",
+			buildMediaUrl: (base: string, file: string) =>
+				`${base}/media?path=${encodeURIComponent(file)}`,
+		}));
+		const manager = await import("./manager");
+		const projectDir = path.join(tempRoot, "Nested media project");
+		const nestedDir = path.join(projectDir, "media", "nested");
+		await fs.mkdir(nestedDir, { recursive: true });
+		const projectPath = path.join(projectDir, "Demo.recordly");
+		const videoPath = path.join(nestedDir, "clip.mp4");
+		await fs.writeFile(videoPath, "video");
+		await fs.writeFile(
+			projectPath,
+			JSON.stringify({
+				version: 1,
+				videoPath: "media/nested/clip.mp4",
+				editor: {},
+			}),
+		);
+		await manager.saveRecentProjectPaths([projectPath]);
+
+		const preview = await manager.readProjectPreview(projectPath);
+		expect(preview.videoUrl).toContain(encodeURIComponent(videoPath));
+		expect(preview.sourcePaths).toContain(videoPath);
+		await expect(manager.isAllowedLocalMediaPath(videoPath)).resolves.toBe(true);
+	});
+
+	it("rejects preview when a relative media candidate is a directory rather than a file", async () => {
+		const manager = await import("./manager");
+		const projectDir = path.join(tempRoot, "Directory candidate project");
+		const nestedDirPath = path.join(projectDir, "media", "nested", "clip.mp4");
+		await fs.mkdir(nestedDirPath, { recursive: true });
+		const projectPath = path.join(projectDir, "Demo.recordly");
+		await fs.writeFile(
+			projectPath,
+			JSON.stringify({
+				version: 1,
+				videoPath: "media/nested/clip.mp4",
+				editor: {},
+			}),
+		);
+		await manager.saveRecentProjectPaths([projectPath]);
+
+		await expect(manager.readProjectPreview(projectPath)).rejects.toThrow(
+			/Project video file not found/i,
+		);
+		await expect(manager.isAllowedLocalMediaPath(nestedDirPath)).resolves.toBe(false);
+	});
+
 	it("leaves the project on the missing-recording path when its nearby match is a directory", async () => {
 		const manager = await import("./manager");
 		const missing = path.join(tempRoot, "Old folder", "recording.mp4");

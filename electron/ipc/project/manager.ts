@@ -550,11 +550,17 @@ export async function readProjectPreview(projectPath: string): Promise<ProjectPr
 	const baseUrl = getMediaServerBaseUrl();
 	if (!baseUrl) throw new Error("Media server is not ready");
 	const relinked = applyRelinkedProjectMedia(project, media);
-	await rememberApprovedLocalReadPath(media.videoPath, !relinked.has(media.videoPath));
-	if (media.webcamPath)
-		await rememberApprovedLocalReadPath(media.webcamPath, !relinked.has(media.webcamPath));
+	if (!relinked.has(media.videoPath)) {
+		await rememberApprovedLocalReadPath(media.videoPath, true);
+	}
+	if (media.webcamPath && !relinked.has(media.webcamPath)) {
+		await rememberApprovedLocalReadPath(media.webcamPath, true);
+	}
 	for (const item of relinked) {
-		await rememberApprovedLocalReadPath(item, false);
+		const stat = await fs.stat(item).catch(() => null);
+		if (stat?.isFile() && isSupportedLocalMediaPath(item)) {
+			await rememberApprovedLocalReadPath(item, false);
+		}
 	}
 	return {
 		revision: projectPreviewRevision(revision),

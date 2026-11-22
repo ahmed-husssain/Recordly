@@ -231,6 +231,56 @@ describe("portable project media resolution (#1104)", () => {
 		expect(media).toMatchObject({ success: true, relinkedAudio: [] });
 	});
 
+	it("resolves a valid relative file in a nested media folder", async () => {
+		const nestedDir = path.join(tempDir, "media", "nested");
+		await fs.mkdir(nestedDir, { recursive: true });
+		const videoFile = path.join(nestedDir, "clip.mp4");
+		await fs.writeFile(videoFile, "video data");
+		const projectPath = path.join(tempDir, "project.recordly");
+		const project = {
+			videoPath: "media/nested/clip.mp4",
+		};
+		const result = await resolveProjectMediaSources(project, projectPath);
+		expect(result).toEqual(
+			expect.objectContaining({
+				success: true,
+				videoPath: videoFile,
+			}),
+		);
+	});
+
+	it("rejects non-file candidate when relative path points to a directory", async () => {
+		const nestedDir = path.join(tempDir, "media", "nested", "clip.mp4");
+		await fs.mkdir(nestedDir, { recursive: true });
+		const projectPath = path.join(tempDir, "project.recordly");
+		const project = {
+			videoPath: "media/nested/clip.mp4",
+		};
+		const result = await resolveProjectMediaSources(project, projectPath);
+		expect(result).toEqual({
+			success: false,
+			message: expect.stringContaining("Project video file not found"),
+		});
+	});
+
+	it("rejects relative paths that traverse outside the project directory", async () => {
+		const outsideDir = path.join(tempDir, "outside");
+		const projectDir = path.join(tempDir, "project");
+		await fs.mkdir(outsideDir, { recursive: true });
+		await fs.mkdir(projectDir, { recursive: true });
+		const outsideFile = path.join(outsideDir, "clip.mp4");
+		await fs.writeFile(outsideFile, "video data");
+		const projectPath = path.join(projectDir, "project.recordly");
+		const project = {
+			videoPath: "../outside/clip.mp4",
+		};
+		const result = await resolveProjectMediaSources(project, projectPath);
+		expect(result).toEqual({
+			success: false,
+			message: expect.stringContaining("Project video file not found"),
+		});
+	});
+
 	it("collects all relinked sources including audio", async () => {
 		const videoFile = path.join(tempDir, "clip.mp4");
 		const audioFile = path.join(tempDir, "clip.mic.wav");
